@@ -1,32 +1,71 @@
 import React from 'react'
+import Heading from './Heading'
+import Row from './Row'
+import moment from 'moment'
+
+class Headings extends React.Component {
+	render() {
+		return (
+			<thead className="table-success">
+				<tr>
+					{this.props.headings.map((heading, i) => (
+						<Heading heading={heading} key={i} />
+					))}
+				</tr>
+			</thead>
+		)
+	}
+}
+
+class Rows extends React.Component {
+	render() {
+		return (
+			<tbody>
+				{this.props.data.map((row, i) => {
+					return <Row key={i} change={row} />
+				})}
+			</tbody>
+		)
+	}
+}
 
 export default class App extends React.Component {
+	constructor() {
+		super()
+		this.state = {
+			data: [],
+		}
+	}
+	componentDidMount() {
+		setInterval(async () => {
+			try {
+				const res = await fetch(
+					'http://openlibrary.org/recentchanges.json?limit=10',
+				)
+				const data = await res.json()
+				const formattedData = this.formatData(data)
+				this.setState({ data: formattedData })
+			} catch (err) {
+				console.log(err)
+			}
+		}, 1000)
+	}
+
+	formatData(data) {
+		return data.map((data, i) => ({
+			when: moment(data.timestamp).startOf('hour').from(),
+			who: data.author.key,
+			description: data.comment,
+		}))
+	}
+
 	render() {
-		console.log(this.props.data)
-		console.log(this.props.title)
-		console.log(this.props.headings)
 		return (
 			<div className="container p-4">
 				<h1>{this.props.title}</h1>
 				<table className="table table-bordered">
-					<thead>
-						<tr>
-							{this.props.headings.map((heading, i) => (
-								<th key={i}>{heading}</th>
-							))}
-						</tr>
-					</thead>
-					<tbody>
-						{this.props.data.map((row, i) => {
-							return (
-								<tr key={i}>
-									<td>{row.when}</td>
-									<td>{row.who}</td>
-									<td>{row.description}</td>
-								</tr>
-							)
-						})}
-					</tbody>
+					<Headings headings={this.props.headings} />
+					<Rows data={this.state.data} />
 				</table>
 			</div>
 		)
